@@ -183,16 +183,25 @@ def confirmar(msg, default=False):
     return _r(questionary.confirm(msg, default=default, qmark="  ?", style=ESTILO).ask())
 
 
+REGRESAR = "__regresar__"
+
+
 def elegir(msg, opciones, default=None):
-    return _r(questionary.select(msg, choices=opciones, default=default, qmark="  ▸",
-                                 pointer="❯", style=ESTILO,
-                                 instruction="(↑↓ y Enter)").ask())
+    """Lista de opciones; siempre incluye '⬅ Regresar' al final."""
+    lista = list(opciones) + [Separator("  ─────────────────────────"),
+                              Choice("⬅  Regresar", value=REGRESAR)]
+    sel = _r(questionary.select(msg, choices=lista, default=default, qmark="  ▸",
+                                pointer="❯", style=ESTILO,
+                                instruction="(↑↓ y Enter)").ask())
+    if sel == REGRESAR:
+        raise _Volver
+    return sel
 
 
 def varios(msg, opciones):
     return _r(questionary.checkbox(msg, choices=opciones, qmark="  ▸", pointer="❯",
                                    style=ESTILO,
-                                   instruction="(Espacio marca, Enter acepta)").ask())
+                                   instruction="(Espacio marca, Enter acepta, Ctrl+C regresa)").ask())
 
 
 def ruta(msg, default="", solo_dirs=True):
@@ -334,7 +343,8 @@ def cabecera(ruta_menu, descripcion=""):
         migas.append("  ›  ", style="dim")
         migas.append(parte, style=f"bold {ACENTO}" if i == len(ruta_menu) - 1 else "bold")
     contenido = Group(migas, Text(descripcion, style="dim italic")) if descripcion else migas
-    console.print(Panel(contenido, border_style=COLOR, box=box.ROUNDED, padding=(0, 1)))
+    console.print(Panel(contenido, border_style=COLOR, box=box.ROUNDED, padding=(0, 1),
+                        subtitle="[dim]Ctrl+C = regresar / cancelar[/]", subtitle_align="right"))
 
 
 class _Volver(Exception):
@@ -737,7 +747,6 @@ def procesos_sistema():
 
 def acciones_proceso():
     acc = elegir("¿Qué deseas hacer?", [
-        Choice("Nada, regresar", value=None),
         Choice("📺 Ver en tiempo real (top)", value="top"),
         Choice("🌳 Ver árbol de procesos (pstree)", value="tree"),
         Choice("⛔ Terminar un proceso (kill)", value="kill"),
